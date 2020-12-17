@@ -24,7 +24,12 @@ namespace DeleteDuplicateFiles
                 }
                 else
                 {
-                    File.Delete(file);
+                    string destPath = path + @"Deleted Files\";
+                    if (!Directory.Exists(destPath))
+                    {
+                        Directory.CreateDirectory(destPath);
+                    }
+                    File.Move(file, destPath + file);
                     Console.WriteLine($"Deleted {file}");
                 }
             }
