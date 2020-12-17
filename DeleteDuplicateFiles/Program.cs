@@ -17,9 +17,7 @@ namespace DeleteDuplicateFiles
             List<string> sha1List = new List<string>();
             foreach (var file in files)
             {
-                Console.WriteLine(file);
                 string hash = checkSHA1(file);
-                Console.WriteLine(hash);
                 if (!sha1List.Contains(hash))
                 {
                     sha1List.Add(hash);
@@ -30,6 +28,8 @@ namespace DeleteDuplicateFiles
                     Console.WriteLine($"Deleted {file}");
                 }
             }
+            Console.WriteLine("Press any key to continue");
+            Console.ReadKey();
         }
         public static string checkSHA1(string file)
         {
