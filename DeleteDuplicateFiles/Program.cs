@@ -13,11 +13,11 @@ namespace DeleteDuplicateFiles
         static void Main(string[] args)
         {
             string path = @".\";
-            string[] files = Directory.GetFiles(path);
+            FileInfo[] files = new DirectoryInfo(path).GetFiles().OrderBy(f => f.LastWriteTime).ToArray();
             List<string> sha1List = new List<string>();
             foreach (var file in files)
             {
-                string hash = checkSHA1(file);
+                string hash = checkSHA1(file.FullName);
                 if (!sha1List.Contains(hash))
                 {
                     sha1List.Add(hash);
@@ -29,7 +29,7 @@ namespace DeleteDuplicateFiles
                     {
                         Directory.CreateDirectory(destPath);
                     }
-                    File.Move(file, destPath + file);
+                    File.Move(file.FullName, destPath + file);
                     Console.WriteLine($"Deleted {file}");
                 }
             }
