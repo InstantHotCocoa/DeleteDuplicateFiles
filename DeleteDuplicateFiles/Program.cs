@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 using System.Security.Cryptography;
+using System.Configuration;
 
 namespace DeleteDuplicateFiles
 {
@@ -14,13 +14,17 @@ namespace DeleteDuplicateFiles
         {
             string path = @".\";
             FileInfo[] files = new DirectoryInfo(path).GetFiles().OrderBy(f => f.LastWriteTime).ToArray();
-            List<string> sha1List = new List<string>();
+            List<string> SHA1List = new List<string>();
+            if (File.Exists("SHA1List.txt"))
+            {
+                LoadSHA1List(SHA1List);
+            }
             foreach (var file in files)
             {
-                string hash = checkSHA1(file.FullName);
-                if (!sha1List.Contains(hash))
+                string hash = CheckSHA1(file.FullName);
+                if (!SHA1List.Contains(hash))
                 {
-                    sha1List.Add(hash);
+                    SHA1List.Add(hash);
                 }
                 else
                 {
@@ -33,10 +37,33 @@ namespace DeleteDuplicateFiles
                     Console.WriteLine($"Deleted {file}");
                 }
             }
+            if (ConfigurationManager.AppSettings["ExportSHA1List"] == "true")
+            {
+                WriteSHA1List(SHA1List);
+            }
             Console.WriteLine("Press any key to continue");
             Console.ReadKey();
         }
-        public static string checkSHA1(string file)
+        public static void LoadSHA1List(List<string> list)
+        {
+            StreamReader sr = new StreamReader("SHA1List.txt");
+            String line;
+            while ((line = sr.ReadLine()) != null)
+            {
+                list.Add(line);
+            }
+        }
+        public static void WriteSHA1List(List<string> list)
+        {
+            using (StreamWriter sw = new StreamWriter("SHA1List.txt"))
+            {
+                foreach (string hash in list)
+                {
+                    sw.WriteLine(hash);
+                }
+            }
+        }
+        public static string CheckSHA1(string file)
         {
             using (SHA1 sha1 = SHA1.Create())
             {
