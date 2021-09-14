@@ -8,61 +8,97 @@ using System.Configuration;
 
 namespace DeleteDuplicateFiles
 {
-    class Program
+    public class Program
     {
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
             string path = @".\";
             FileInfo[] files = new DirectoryInfo(path).GetFiles().OrderBy(f => f.LastWriteTime).ToArray();
+            int current = 1;
+            int total = files.Length;
+            bool ExportSHA1List = Convert.ToBoolean(ConfigurationManager.AppSettings["ExportSHA1List"]);
+            bool UseSHA1List = Convert.ToBoolean(ConfigurationManager.AppSettings["UseSHA1List"]);
             List<string> SHA1List = new List<string>();
-            if (File.Exists("SHA1List.txt"))
+
+            if (UseSHA1List)
             {
-                LoadSHA1List(SHA1List);
-            }
-            foreach (var file in files)
-            {
-                string hash = CheckSHA1(file.FullName);
-                if (!SHA1List.Contains(hash))
+                if (File.Exists("SHA1List.txt"))
                 {
-                    SHA1List.Add(hash);
+                    LoadSHA1List(SHA1List);
                 }
                 else
+                {
+                    Console.WriteLine("Cannot find SHA1List.txt. Program terminated.\nPress any key to continue");
+                    Console.ReadKey();
+                    return;
+                }
+            }
+            else
+            {
+                if (File.Exists("SHA1List.txt"))
+                {
+                    File.Delete("SHA1List.txt");
+                }
+            }
+
+            foreach (FileInfo file in files)
+            {
+                string hash = CheckSHA1(file.FullName);
+                if (ExportSHA1List)
+                {
+                    WriteSHA1List(hash);
+                }
+
+                if (SHA1List.Contains(hash))
                 {
                     string destPath = path + @"Deleted Files\";
                     if (!Directory.Exists(destPath))
                     {
                         Directory.CreateDirectory(destPath);
                     }
-                    File.Move(file.FullName, destPath + file);
-                    Console.WriteLine($"Deleted {file}");
+                    try
+                    {
+                        File.Move(file.FullName, destPath + file);
+                        Console.WriteLine($"Deleted {file}");
+                    }
+                    catch (IOException)
+                    {
+                        Console.WriteLine($"Can't delete {file} due to a same filename exists");
+                    }
                 }
+                else
+                {
+                    SHA1List.Add(hash);
+                }
+
+                Console.Write($"{current}/{total}\r");
+                ++current;
             }
-            if (ConfigurationManager.AppSettings["ExportSHA1List"] == "true")
-            {
-                WriteSHA1List(SHA1List);
-            }
-            Console.WriteLine("Press any key to continue");
+
+            Console.WriteLine("Finished. Press any key to continue");
             Console.ReadKey();
         }
+
         public static void LoadSHA1List(List<string> list)
         {
-            StreamReader sr = new StreamReader("SHA1List.txt");
-            String line;
-            while ((line = sr.ReadLine()) != null)
+            using (StreamReader sr = new StreamReader("SHA1List.txt"))
             {
-                list.Add(line);
-            }
-        }
-        public static void WriteSHA1List(List<string> list)
-        {
-            using (StreamWriter sw = new StreamWriter("SHA1List.txt"))
-            {
-                foreach (string hash in list)
+                string line;
+                while ((line = sr.ReadLine()) != null)
                 {
-                    sw.WriteLine(hash);
+                    list.Add(line);
                 }
             }
         }
+
+        public static void WriteSHA1List(string hash)
+        {
+            using (StreamWriter sw = new StreamWriter("SHA1List.txt", true))
+            {
+                sw.WriteLine(hash);
+            }
+        }
+
         public static string CheckSHA1(string file)
         {
             using (SHA1 sha1 = SHA1.Create())
